@@ -1,18 +1,28 @@
 import socket
-
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+import threading
 
 HOST = "127.0.0.1"
 PORT = 12345
 
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect((HOST, PORT))
 
-while True:
-    message = input("Nhập message gửi đến server (0 để thoát): ")
-    client_socket.send(message.encode())
-    if message == "0":
-        break
-    response = client_socket.recv(1024).decode()
-    print("Phản hồi từ server:", response)
+def receive():
+    while True:
+        try:
+            message = client_socket.recv(1024).decode()
+            if message:
+                print("\n" + message)
+        except:
+            break
 
-client_socket.close()
+def send():
+    while True:
+        msg = input()
+        if msg.lower() == "exit":
+            client_socket.close()
+            break
+        client_socket.send(msg.encode())
+
+threading.Thread(target=receive, daemon=True).start()
+send()
