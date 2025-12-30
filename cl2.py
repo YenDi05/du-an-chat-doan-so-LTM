@@ -10,9 +10,10 @@ client_socket.connect((HOST, PORT))
 def receive():
     while True:
         try:
-            message = client_socket.recv(1024).decode()
-            if message:
-                print("\n" + message)
+            data = client_socket.recv(1024)
+            if not data:
+                break
+            print("\n" + data.decode())
         except:
             break
 
