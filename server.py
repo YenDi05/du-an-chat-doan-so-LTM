@@ -9,10 +9,11 @@ clients = []
 lock = threading.Lock()
 
 secret_number = random.randint(1, 100)
+print(f"DEBUG: So bi mat hien tai la: {secret_number}")
 
 def broadcast(message, exclude=None):
     with lock:
-        for client in clients:
+        for client in clients[:]:
             if client == exclude:
                 continue
             try:
@@ -23,9 +24,11 @@ def broadcast(message, exclude=None):
 def reset_game():
     global secret_number
     secret_number = random.randint(1, 100)
+    print(f"---- GAME RESET: So bi mat moi la: {secret_number} ----")
 
 def handle_client(conn, addr):
-    broadcast(f"Server: {addr} da tham gia phong chat\n".encode())
+    conn.send(f"Server: Doan so tu 1 den 100\n".encode())
+    broadcast(f"Server: {addr} da tham gia phong chat\n".encode(), exclude=conn)
 
     while True:
         try:
@@ -41,28 +44,32 @@ def handle_client(conn, addr):
                     conn.send("Server: Cu phap dung la /guess <so>\n".encode())
                 else:
                     guess = int(parts[1])
-                    broadcast(f"{addr} doan: {guess}\n".encode(),
-                    exclude=conn
+
+                    broadcast(
+                        f"{addr} doan: {guess}\n".encode(),
+                        exclude=conn
                     )
+
                     if guess == secret_number:
-                        conn.send("Server: DUNG ROI!Ban da doan DUNG so!\n".encode())
+                        conn.send("Server: DUNG ROI! Ban da doan DUNG so!\n".encode())
                         broadcast(
                             f"Server: {addr} da doan DUNG so!\n".encode(),
                             exclude=conn
                         )
-
                         reset_game()
-
                         broadcast("Server: Bat dau van moi\n".encode())
                     elif guess < secret_number:
+                        conn.send("Server: So can tim LON HON\n".encode())
                         broadcast(
-                            "Server: So can tim LON HON\n".encode()
+                            "Server: So can tim LON HON\n".encode(),
+                            exclude=conn
                         )
                     else:
+                        conn.send("Server: So can tim NHO HON\n".encode())
                         broadcast(
-                            "Server: So can tim NHO HON\n".encode()
+                            "Server: So can tim NHO HON\n".encode(),
+                            exclude=conn
                         )
-
             else:
                 broadcast(f"{addr}: {msg}\n".encode(), exclude=conn)
 
@@ -74,7 +81,10 @@ def handle_client(conn, addr):
             clients.remove(conn)
 
     broadcast(f"Server: {addr} da roi phong chat\n".encode())
-    conn.close()
+    try:
+        conn.close()
+    except:
+        pass
 
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_socket.bind((HOST, PORT))
